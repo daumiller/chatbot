@@ -1,0 +1,78 @@
+Timers
+Macros
+Quotes
+Counters
+Sounds
+Music
+Polls (start/vote/end)
+Join/Leave/Shoutout
+Follow/Subscribe/GiftBits/GiftSub
+Filters
+StartStream (for uptime)
+Shutdown/Restart
+Command (enable/disable)
+
+User
+    id
+    username
+    displayname
+    nickname
+    visits
+    last_join
+
+Command
+    id
+    name
+    permission (all/follower/subscriber/moderator/streamer)
+    chat_enabled
+    whisper_enabled
+    cooldown_seconds
+    cooldown_expires
+
+Poll
+    id
+    began_at
+    description
+PollVote
+    id
+    username
+    poll_id
+    choice
+
+Timer
+    id
+    began_at
+    complete_at
+    completed
+
+Macro
+    id
+    template
+    parameter_count
+
+Quote
+    id
+    number
+    text
+    recorded_at
+    cooldown_seconds
+    cooldown_expires
+
+Sound
+    id
+    filename
+    permission
+    cooldown_seconds
+    cooldown_expires
+
+Shoutout
+    id
+    username
+    template
+
+Filter
+    id
+    regex
+    does_ban
+    does_delete
+    delete_template

@@ -1,0 +1,30 @@
+{
+  "name": "chatbot",
+  "version": "1.0.0",
+  "description": "DarcyJane's ChatBot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daumiller/chatbot.git"
+  },
+  "keywords": [
+    "Twitch",
+    "Chat",
+    "Bot",
+    "ChatBot",
+    "DarcyJane"
+  ],
+  "author": "Darcy Aumiller",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/daumiller/chatbot/issues"
+  },
+  "homepage": "https://github.com/daumiller/chatbot#readme",
+  "dependencies": {
+    "mongodb": "^3.4.1",
+    "tmi.js": "^1.5.0"
+  }
+}
