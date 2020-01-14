@@ -3,6 +3,7 @@ function command_shutdown(chatbot, data) {
 }
 
 function command_ping(chatbot, data) {
+    if(!data.is_chat) { return; } // can't whisper back
     chatbot.twitch_client.say(data.channel, 'PONG');
 }
 

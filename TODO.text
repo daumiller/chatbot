@@ -1,17 +1,37 @@
-Timers
-Macros
-Quotes
-Counters
-Sounds
-Music
-Polls (start/vote/end)
-Join/Leave/Shoutout
-Follow/Subscribe/GiftBits/GiftSub
-Filters
-StartStream (for uptime)
-Shutdown/Restart
-Command (enable/disable)
+============================================================
+Next Up
+============================================================
+[x] strip quotes from arguments
+[x] Clean up polling, add class
+[ ] Enable/disable command, change command permissions/modes
 
+// always tasks
+Clean up DB
+Documentation -- commands & DB (collections, fields, permission-model, ...)
+Add usage to commands?
+
+============================================================
+Progress
+============================================================
+[x] Shutdown
+[ ] Polls (start/vote/end)
+[ ] Command (enable/disable/permissions/modes)
+
+[ ] Macros
+[ ] Quotes
+[ ] Counters
+[ ] uptime (OBS? Twitch? Manual?)
+[ ] Join/Leave/Shoutout
+[ ] Filters
+
+[ ] Timers
+[ ] Sounds
+[ ] Music
+[ ] Follow/Subscribe/GiftBits/GiftSub
+
+============================================================
+DB Schema
+============================================================
 User
     id
     username

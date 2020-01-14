@@ -84,6 +84,9 @@ class ChatBot {
         if(this.commands["!join"]) {
             this.commands["!join"](this, channel, username);
         }
+        if(this.commands["!shoutout"]) {
+            this.commands["!shoutout"](this, channel, username);
+        }
     }
 
     _twitch_event_message(channel, tags, message, self) {
@@ -99,8 +102,14 @@ class ChatBot {
             }
         }
     
-        const words = message.split(' '); // TODO: quoted phrases, ...
+        let words = message.match(/"[^"]+"|\S+/g);
+        if(!words.length) { return; }
         if(!this.commands[words[0]]) { return; }
+
+        // strip enclosing quotes
+        words = words.map((word) => {
+            return word.replace(/^"([^"]*)"$/, "$1");
+        });
     
         const db_commands = this.db_client.collection('commands');
         db_commands.findOne({ name:words[0] }, (error, result) => {
