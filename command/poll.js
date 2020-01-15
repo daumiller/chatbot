@@ -36,27 +36,22 @@ class Poll {
 
     announce_results(fn_say, all_results=true) {
         if(!this.vote_totals) { this.calculate_results(); }
-        const is_tie = this.vote_totals[0].count === this.vote_totals[1].count;
 
-        for(let index=0; index<this.vote_totals.length; ++index) {
-            const option_name  = this.options[this.vote_totals[index].index];
-            const option_count = this.vote_totals[index].count;
+        if(all_results) {
+            for(let index=0; index<this.vote_totals.length; ++index) {
+                const option_name  = this.options[this.vote_totals[index].index];
+                const option_count = this.vote_totals[index].count;
 
-            if(index === 0) {
-                if(is_tie) {
-                    if(!all_results) {
-                        fn_say(this.channel, `Poll was a tie.`);
-                    } else {
-                        fn_say(this.channel,`--- option "${option_name}" had ${option_count} votes.`);
-                    }
-                } else {
-                    fn_say(this.channel,`Poll Winner was "${option_name}", with ${option_count} votes.`);
-                }
-                if(!all_results) { break; }
-            } else {
-                fn_say(this.channel,`--- option "${option_name}" had ${option_count} votes.`);
+                fn_say(this.channel,`--- option "${option_name}" had ${option_count} votes`);
             }
-        }
+        } else {
+            const is_tie = this.vote_totals[0].count === this.vote_totals[1].count;
+            if(is_tie) {
+                fn_say(this.channel, `--- poll ended in a tie`);
+            } else {
+                fn_say(this.channel,`--- "${option_name}" won the poll, with ${option_count} votes`);
+            }
+        }                
     }
 }
 

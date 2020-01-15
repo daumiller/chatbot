@@ -4,6 +4,9 @@ Next Up
 [x] strip quotes from arguments
 [x] Clean up polling, add class
 [ ] Enable/disable command, change command permissions/modes
+    - !command !quote enable|disable [chat|whisper] # global if not chat/whisper specified
+    - !command !quote permission integerPermissionValue
+    - !command !quote permission grant|deny all|sub|mod|streamer
 
 // always tasks
 Clean up DB

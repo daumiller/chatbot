@@ -2,8 +2,9 @@ const twitch = require('tmi.js');
 const mongo  = require('mongodb');
 
 const PERMISSION_ALL      = 0;
-const PERMISSION_MOD      = 1;
-const PERMISSION_STREAMER = 2;
+const PERMISSION_SUB      = 1;
+const PERMISSION_MOD      = 2;
+const PERMISSION_STREAMER = 4;
 
 class ChatBot {
     disconnecting = false;
@@ -122,6 +123,7 @@ class ChatBot {
     _twitch_event_message_continue(channel, tags, message, words, db_command) {
         const is_chat     = tags && (tags['message-type'] === 'chat');
         const is_whisper  = tags && (tags['message-type'] === 'whisper');
+        const is_sub      = tags && (tags['subscriber']   === 'true'); // NOTE: sub is only valid during is_chat messages
         const is_mod      = tags && tags['mod'];
         const is_streamer = tags && (tags['username'] === this.secrets.twitch.streamer);
     
@@ -132,10 +134,12 @@ class ChatBot {
         // permissions check
         let permission = true;
         if(db_command.permission !== 0) {
-            if(db_command.permission !== tags['username']) {
-                if(!((db_command.permission & PERMISSION_MOD) && is_mod)) {
-                    if(!((db_command.permission & PERMISSION_STREAMER) && is_streamer)) {
-                        permission = false;
+            if(db_command.permission !== tags['username']) { // permission can be granted by username
+                if(!((db_command.permission & PERMISSION_SUB) && is_sub)) {
+                    if(!((db_command.permission & PERMISSION_MOD) && is_mod)) {
+                        if(!((db_command.permission & PERMISSION_STREAMER) && is_streamer)) {
+                            permission = false;
+                        }
                     }
                 }
             }
@@ -152,6 +156,7 @@ class ChatBot {
             words      : words,
             is_chat    : is_chat,
             is_whisper : is_whisper,
+            is_sub     : is_sub,
             is_mod     : is_mod,
             is_streamer: is_streamer
         };
