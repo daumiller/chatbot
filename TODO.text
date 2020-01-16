@@ -3,10 +3,16 @@ Next Up
 ============================================================
 [x] strip quotes from arguments
 [x] Clean up polling, add class
-[ ] Enable/disable command, change command permissions/modes
+[x] Enable/disable command, change command permissions/modes
     - !command !quote enable|disable [chat|whisper] # global if not chat/whisper specified
     - !command !quote permission integerPermissionValue
-    - !command !quote permission grant|deny all|sub|mod|streamer
+    - !command !quote permission grant|deny|set user|sub|mod|streamer
+    * would make !command whisper only, but can't read mod flag during whispers...
+    * any results/errors will @ user in main channel, since we can't return whispers (for streamer)
+
+// later tasks
+[ ] option to store user details so mods can whisper mod-enabled commands...
+[ ] allow username (list) based permissions
 
 // always tasks
 Clean up DB
@@ -17,13 +23,14 @@ Add usage to commands?
 Progress
 ============================================================
 [x] Shutdown
-[ ] Polls (start/vote/end)
-[ ] Command (enable/disable/permissions/modes)
+[x] Polls (start/vote/end)
+[x] Command (enable/disable/permissions/modes)
 
 [ ] Macros
 [ ] Quotes
 [ ] Counters
-[ ] uptime (OBS? Twitch? Manual?)
+
+[ ] uptime (using obs-websocket, probably)
 [ ] Join/Leave/Shoutout
 [ ] Filters
 

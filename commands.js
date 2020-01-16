@@ -7,6 +7,7 @@ const command_paths = [
     "./command/poll",
     "./command/process",
     "./command/shoutout",
+    "./command/permission",
 ];
 
 for(let index=0; index<command_paths.length; ++index) {

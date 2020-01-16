@@ -1,10 +1,6 @@
 const twitch = require('tmi.js');
 const mongo  = require('mongodb');
-
-const PERMISSION_ALL      = 0;
-const PERMISSION_SUB      = 1;
-const PERMISSION_MOD      = 2;
-const PERMISSION_STREAMER = 4;
+const constants = require('./constants.js');
 
 class ChatBot {
     disconnecting = false;
@@ -123,8 +119,8 @@ class ChatBot {
     _twitch_event_message_continue(channel, tags, message, words, db_command) {
         const is_chat     = tags && (tags['message-type'] === 'chat');
         const is_whisper  = tags && (tags['message-type'] === 'whisper');
-        const is_sub      = tags && (tags['subscriber']   === 'true'); // NOTE: sub is only valid during is_chat messages
-        const is_mod      = tags && tags['mod'];
+        const is_sub      = tags && (tags['subscriber']   === 'true'); // NOTE: is_sub only valid for is_chat messages
+        const is_mod      = tags && (tags['mod'] === true);            // NOTE: is_mod only valid for is_chat messages
         const is_streamer = tags && (tags['username'] === this.secrets.twitch.streamer);
     
         // mode check
@@ -132,18 +128,11 @@ class ChatBot {
         if(is_whisper && !db_command.whisper_enabled) { return; }
 
         // permissions check
-        let permission = true;
-        if(db_command.permission !== 0) {
-            if(db_command.permission !== tags['username']) { // permission can be granted by username
-                if(!((db_command.permission & PERMISSION_SUB) && is_sub)) {
-                    if(!((db_command.permission & PERMISSION_MOD) && is_mod)) {
-                        if(!((db_command.permission & PERMISSION_STREAMER) && is_streamer)) {
-                            permission = false;
-                        }
-                    }
-                }
-            }
-        }
+        let permission = false;
+        if((db_command.permission & constants.PERMISSION_USER    )               ) { permission = true; }
+        if((db_command.permission & constants.PERMISSION_SUB     ) && is_sub     ) { permission = true; }
+        if((db_command.permission & constants.PERMISSION_MOD     ) && is_mod     ) { permission = true; }
+        if((db_command.permission & constants.PERMISSION_STREAMER) && is_streamer) { permission = true; }
         if(!permission) { return; }
 
         // TODO: cooldown check
