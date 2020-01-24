@@ -9,9 +9,27 @@ Next Up
     - !command !quote permission grant|deny|set user|sub|mod|streamer
     * would make !command whisper only, but can't read mod flag during whispers...
     * any results/errors will @ user in main channel, since we can't return whispers (for streamer)
+[ ] Macros
+    !macro add name string ->  `Macro ${name} added`
+    !macro delete name     ->  `Macro ${name} deleted`
+    !name                  ->  `${string}`
+    db_command.handled_by = "!macro"
+    db_command.permission = constants.PERMISSION_MAX // default to allow-all (edit with !command as needed)
+    if(db_command.handled_by && commands[db_command.handled_by]) { ... }
+[ ] Counters
+    // template "Stream has had $value errors..."
+    !counter add name template   -> `Counter ${name} added`
+    !counter edit name template  -> `Counter ${name} updated`
+    !counter delete name         -> `Counter ${name} deleted`
+    !counter inc name            -> `${template.replace(/\$value/g, value.toString())}
+    !counter dec name            -> ...
+    !counter set name [+/-]amount // +=, -=, =
+    !counter name // displays template
+    db_command.permission // for read only access
+    db_command.edit_permission // for add/edit/delete (only editable manually, verified in-command)
 
 // later tasks
-[ ] option to store user details so mods can whisper mod-enabled commands...
+[ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
 [ ] allow username (list) based permissions
 
 // always tasks
@@ -27,8 +45,8 @@ Progress
 [x] Command (enable/disable/permissions/modes)
 
 [ ] Macros
-[ ] Quotes
 [ ] Counters
+[ ] Quotes
 
 [ ] uptime (using obs-websocket, probably)
 [ ] Join/Leave/Shoutout
