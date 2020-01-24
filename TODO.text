@@ -9,7 +9,7 @@ Next Up
     - !command !quote permission grant|deny|set user|sub|mod|streamer
     * would make !command whisper only, but can't read mod flag during whispers...
     * any results/errors will @ user in main channel, since we can't return whispers (for streamer)
-[ ] Macros
+[x] Macros
     !macro add name string ->  `Macro ${name} added`
     !macro delete name     ->  `Macro ${name} deleted`
     !name                  ->  `${string}`
