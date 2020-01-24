@@ -101,7 +101,6 @@ class ChatBot {
     
         let words = message.match(/"[^"]+"|\S+/g);
         if(!words.length) { return; }
-        if(!this.commands[words[0]]) { return; }
 
         // strip enclosing quotes
         words = words.map((word) => {
@@ -141,6 +140,7 @@ class ChatBot {
             channel    : channel,
             tags       : tags,
             message    : message,
+            db_command : db_command, // TODO: maybe (db_command.handled_by ? db_command : null) ?
     
             words      : words,
             is_chat    : is_chat,
@@ -151,7 +151,13 @@ class ChatBot {
         };
     
         this.logger.debug("EXECUTING COMMAND", data);
-        this.commands[words[0]](this, data);
+        
+        let command_name = db_command.handled_by || db_command.name;
+        if(this.commands[command_name]) {
+            this.commands[command_name](this, data);
+        }
+        // TODO: maybe?
+        // else { chatbot.twitch_client.say(unknown command ...) }
     }
 
     _validate(object, object_name, keys) {
