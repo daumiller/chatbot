@@ -43,8 +43,9 @@ Progress
 [x] Shutdown
 [x] Polls (start/vote/end)
 [x] Command (enable/disable/permissions/modes)
+[X] Macros
+[X] Websocket Base Code (todo, add pages/widgets/functions...)
 
-[ ] Macros
 [ ] Counters
 [ ] Quotes
 

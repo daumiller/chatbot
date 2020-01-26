@@ -1,12 +1,16 @@
-const twitch = require('tmi.js');
-const mongo  = require('mongodb');
+const fs        = require('fs');
+const http      = require('http');
+const twitch    = require('tmi.js');
+const mongo     = require('mongodb');
+const socketio  = require('socket.io');
 const constants = require('./constants.js');
 
 class ChatBot {
-    disconnecting = false;
-    mongo_client  = null;
-    db_client     = null;
-    twitch_client = null;
+    disconnecting    = false;
+    mongo_client     = null;
+    db_client        = null;
+    twitch_client    = null;
+    websocket_client = null;
 
     constructor(secrets, commands, logger) {
         this.secrets  = secrets  || {};
@@ -27,6 +31,7 @@ class ChatBot {
     }
     shutdown(exit, exit_code) {
         this.disconnecting = true;
+        this._shutdown_websocket();
         this._shutdown_twitch();
         this._shutdown_mongo();
         if(exit) { process.exit(exit_code || 0); }
@@ -43,6 +48,7 @@ class ChatBot {
             this.db_client = this.mongo_client.db(this.secrets.mongo.dbname);
 
             this._startup_twitch();
+            this._startup_websocket();
         });
     }
     _shutdown_mongo() {
@@ -74,6 +80,25 @@ class ChatBot {
         });
     }
 
+    _startup_websocket() {
+        this._websocket_http_server = http.createServer(this._websocket_event_http.bind(this));
+        this._websocket_server = socketio(this._websocket_http_server);
+        this._websocket_http_server.on('error', (error) => {
+            this.logger.error('Websocket Server Error', { error:error });
+            throw "Websocket server error";
+        });
+        this._websocket_http_server.listen(this.secrets.websocket.port || 8080);
+        if(this.debug) {
+            this._websocket_server.on('connection', (client) => {
+                this.logger.debug("Websocket connection established.", { client:client });
+            });
+        }
+    }
+    _shutdown_websocket() {
+        this._websocket_server.close();
+        this._websocket_http_server.close();
+    }
+
     _twitch_event_join(channel, username, self) {
         if((!this.twitch_client.readyState === "OPEN") || this.disconnecting || self) { return; }
         this.logger.debug("EVENT JOIN", { channel:channel, username:username });
@@ -87,17 +112,23 @@ class ChatBot {
     }
 
     _twitch_event_message(channel, tags, message, self) {
-        if((!this.twitch_client.readyState === "OPEN") || this.disconnecting || self) { return; }
-        if(!message.length || (message[0] !== '!')) { return; }
-    
-        this.logger.debug("EVENT MESSAGE", { channel:channel, tags:tags, message:message });
-    
-        if(this.commands["!filter"]) {
+        if((!this.twitch_client.readyState === "OPEN") || this.disconnecting) { return; }
+
+        if(this.commands["!filter"] && !self) {
             if(this.commands["!filter"](this, channel, tags, message)) {
                 // message was filtered
                 return;
             }
         }
+
+        if(tags['message-type'] && (tags['message-type'] === 'chat')) {
+            this._websocket_event_chatlog(tags.username, message); // TODO: more data needed?
+        }
+
+        if(self) { return; }
+        if(!message.length || (message[0] !== '!')) { return; }
+
+        this.logger.debug("EVENT MESSAGE", { channel:channel, tags:tags, message:message });
     
         let words = message.match(/"[^"]+"|\S+/g);
         if(!words.length) { return; }
@@ -158,6 +189,22 @@ class ChatBot {
         }
         // TODO: maybe?
         // else { chatbot.twitch_client.say(unknown command ...) }
+    }
+
+    _websocket_event_http(request, response) {
+        const filename = `${__dirname}/websocket/${request.url}`;
+        fs.readFile(filename, (error, content) => {
+            if(error) {
+                response.writeHead(500);
+                return response.end('Error loading page');
+            }
+            response.writeHead(200);
+            return response.end(content);
+        });
+    }
+
+    _websocket_event_chatlog(username, message) {
+        this._websocket_server.emit('chatlog', { username:username, message:message });
     }
 
     _validate(object, object_name, keys) {
