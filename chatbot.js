@@ -10,7 +10,7 @@ class ChatBot {
     mongo_client     = null;
     db_client        = null;
     twitch_client    = null;
-    websocket_client = null;
+    websocket_server = null;
 
     constructor(secrets, commands, logger) {
         this.secrets  = secrets  || {};
@@ -82,20 +82,20 @@ class ChatBot {
 
     _startup_websocket() {
         this._websocket_http_server = http.createServer(this._websocket_event_http.bind(this));
-        this._websocket_server = socketio(this._websocket_http_server);
+        this.websocket_server = socketio(this._websocket_http_server);
         this._websocket_http_server.on('error', (error) => {
             this.logger.error('Websocket Server Error', { error:error });
             throw "Websocket server error";
         });
         this._websocket_http_server.listen(this.secrets.websocket.port || 8080);
         if(this.debug) {
-            this._websocket_server.on('connection', (client) => {
+            this.websocket_server.on('connection', (client) => {
                 this.logger.debug("Websocket connection established.", { client:client });
             });
         }
     }
     _shutdown_websocket() {
-        this._websocket_server.close();
+        this.websocket_server.close();
         this._websocket_http_server.close();
     }
 
@@ -204,7 +204,7 @@ class ChatBot {
     }
 
     _websocket_event_chatlog(username, message) {
-        this._websocket_server.emit('chatlog', { username:username, message:message });
+        this.websocket_server.emit('chatlog', { username:username, message:message });
     }
 
     _validate(object, object_name, keys) {
