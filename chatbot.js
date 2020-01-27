@@ -3,6 +3,7 @@ const http      = require('http');
 const twitch    = require('tmi.js');
 const mongo     = require('mongodb');
 const socketio  = require('socket.io');
+const graphemes = require('grapheme-splitter')();
 const constants = require('./constants.js');
 
 class ChatBot {
@@ -90,7 +91,7 @@ class ChatBot {
         this._websocket_http_server.listen(this.secrets.websocket.port || 8080);
         if(this.debug) {
             this.websocket_server.on('connection', (client) => {
-                this.logger.debug("Websocket connection established.", { client:client });
+                this.logger.debug("Websocket connection established.", {});
             });
         }
     }
@@ -122,7 +123,7 @@ class ChatBot {
         }
 
         if(tags['message-type'] && (tags['message-type'] === 'chat')) {
-            this._websocket_event_chatlog(tags.username, message); // TODO: more data needed?
+            this._websocket_event_chatlog(tags, message);
         }
 
         if(self) { return; }
@@ -203,8 +204,36 @@ class ChatBot {
         });
     }
 
-    _websocket_event_chatlog(username, message) {
-        this.websocket_server.emit('chatlog', { username:username, message:message });
+    _websocket_event_chatlog(tags, message) {
+        let emotes = tags.emotes;
+        if(emotes) {
+            let characters = graphemes.splitGraphemes(message);
+            let sorted_emotes = [];
+            for(var emote_id in emotes) {
+                if(!emotes.hasOwnProperty(emote_id)) { continue; }
+                for(let occurence=0; occurence<emotes[emote_id].length; ++occurence) {
+                    let positions = emotes[emote_id][occurence].split('-');
+                    if(positions.length === 2) {
+                        let index_begin = parseInt(positions[0]);
+                        let index_end   = parseInt(positions[1]);
+                        // twitch appears to index actual graphemes, instead of JS string length
+                        // maybe U32 vs U16? revisit if needed...
+                        let offset     = characters.slice(0, index_begin).join('').length - index_begin;
+                        index_begin    += offset;
+                        index_end      += offset;
+                        sorted_emotes.push({ id:emote_id, begin:index_begin, end:index_end });
+                    }
+                }
+            }
+            emotes = sorted_emotes.sort(function(a,b) { return a.begin - b.begin; });
+        }
+        const data = {
+            username: tags["display-name"] || tags.username,
+            color   : tags.color           || "#0000FF",
+            emotes  : emotes               || [],
+            message : message              || "",
+        };
+        this.websocket_server.emit('chatlog', data);
     }
 
     _validate(object, object_name, keys) {
