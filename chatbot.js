@@ -204,6 +204,10 @@ class ChatBot {
         });
     }
 
+    websocket_emit_event(name, data) {
+        this.websocket_server.emit(name, data);
+    }
+
     _websocket_event_chatlog(tags, message) {
         let emotes = tags.emotes;
         if(emotes) {

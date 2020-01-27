@@ -34,7 +34,7 @@ class Poll {
         this.vote_totals = vote_totals;
     }
 
-    announce_results(fn_say, all_results=true) {
+    announce_results(fn_say, fn_emit, all_results=true) {
         if(!this.vote_totals) { this.calculate_results(); }
 
         if(all_results) {
@@ -44,18 +44,27 @@ class Poll {
 
                 fn_say(this.channel,`--- option "${option_name}" had ${option_count} votes`);
             }
+        }
+
+        const is_tie = this.vote_totals[0].count === this.vote_totals[1].count;
+        if(is_tie) {
+            fn_emit("notification", { type:"poll-end", message:"Ended in a tie!" });
+            if(!all_results) { fn_say(this.channel, `--- poll ended in a tie`); }
         } else {
-            const is_tie = this.vote_totals[0].count === this.vote_totals[1].count;
-            if(is_tie) {
-                fn_say(this.channel, `--- poll ended in a tie`);
-            } else {
-                fn_say(this.channel,`--- "${option_name}" won the poll, with ${option_count} votes`);
-            }
-        }                
+            const option_name  = this.options[this.vote_totals[0].index];
+            const option_count = this.vote_totals[0].count;
+            fn_emit("notification", { type:"poll-end", message:`Winner was "${option_name}"` });
+            if(!all_results) { fn_say(this.channel,`--- "${option_name}" won the poll, with ${option_count} votes`); }
+        }
     }
 }
 
 function command_poll(polldata, chatbot, data) {
+    if((data.words.length === 1) && (polldata.poll)) {
+        polldata.poll.announce_options(chatbot.twitch_client.say.bind(chatbot.twitch_client));
+        return;
+    }
+
     if(polldata.poll) { polldata.poll = null; }
 
     if(data.words.length < 4) {
@@ -68,6 +77,7 @@ function command_poll(polldata, chatbot, data) {
     polldata.poll = new Poll(chatbot.secrets.twitch.channel, data.words[1], data.words.splice(2), chatbot.logger);
 
     polldata.poll.announce_options(chatbot.twitch_client.say.bind(chatbot.twitch_client));
+    chatbot.websocket_emit_event('notification', { type:'poll-start', message:data.words[1] });
 }
 
 function command_vote(polldata, chatbot, data) {
@@ -89,7 +99,7 @@ function command_endpoll(polldata, chatbot, data) {
     const ended_poll = polldata.poll;
     polldata.poll = null;
 
-    ended_poll.announce_results(chatbot.twitch_client.say.bind(chatbot.twitch_client));
+    ended_poll.announce_results(chatbot.twitch_client.say.bind(chatbot.twitch_client), chatbot.websocket_emit_event.bind(chatbot));
 }
 
 module.exports = {
