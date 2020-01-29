@@ -1,7 +1,8 @@
+var NOTIFICATION_MAX_COUNT       = 5;
+var NOTIFICATION_DEFAULT_TIMEOUT = 5;
+
+var timeouts = []; // { handle:setTimeout.result, element:domElement, data:originalNotificationData }
 var el_root = document.querySelector("#notifications") || document.body;
-var NOTIFICATION_MAX_COUNT = 3;
-var NOTIFICATION_TIMEOUT   = 5000;
-var timeouts               = [];
 
 function simple_span(className, innerText) {
     var element = document.createElement("span");
@@ -18,44 +19,58 @@ function compose_poll(data) {
     el_container.className = "notification poll " + data.type;
     el_container.appendChild(el_title);
     el_container.appendChild(el_message);
+
+    if(data.type === "poll-end") {
+        for(let index=0; index<timeouts.length; ++index) {
+            if(timeouts[index].data.type === "poll-start") {
+                window.clearTimeout(timeouts[index].handle);
+                timeout_notification(timeouts[index].element);
+                timeouts = timeouts.splice(index, 1);
+            }
+        }
+    }
     
     return el_container;
 }
 
 function timeout_notification(element) {
-    el_root.removeChild(element);
+    if(el_root.contains(element)) { el_root.removeChild(element); }
 }
 
-function append_notification(element) {
+function append_notification(element, data, timeout) {
     while(el_root.childNodes.length >= NOTIFICATION_MAX_COUNT) {
         el_root.removeChild(el_root.childNodes[0]);
-        window.clearTimeout(timeouts[0]);
+        window.clearTimeout(timeouts[0].handle);
         timeouts = timeouts.slice(1);
     }
 
     el_root.appendChild(element);
-    timeouts[el_root.childNodes.length-1] = window.setTimeout(timeout_notification.bind(null, element), NOTIFICATION_TIMEOUT);
+
+    const timeout_ms = (timeout || NOTIFICATION_DEFAULT_TIMEOUT) * 1000;
+    timeouts[el_root.childNodes.length-1] = {
+        data: data,
+        element: element,
+        handle: window.setTimeout(timeout_notification.bind(null, element), timeout_ms),
+    };
 }
 
 var notification_types = {
-    "poll-start": compose_poll,
-    "poll-end"  : compose_poll,
+    "poll-start": { compose:compose_poll, timeout:60 },
+    "poll-end"  : { compose:compose_poll, timeout:10 },
 };
 
 var websocket = io();
 websocket.on('notification', function(data){
-    console.log("NOTIFICATION RECEIVED");
     console.log(data);
     if(data && data.type && notification_types[data.type]) {
-        var el_notification = notification_types[data.type](data);
-        append_notification(el_notification);
+        var notification_type = notification_types[data.type];
+        var el_notification = notification_type.compose(data);
+        append_notification(el_notification, data, data.timeout || notification_type.timeout);
     }
 });
 
-var _test_notification_count = 0;
-window.test_notification = function() {
-    var element = document.createElement("div");
-    element.innerText = "Test Notification #" + this._test_notification_count.toString();
-    ++this._test_notification_count;
-    append_notification(element);
-};
+function testNotify(data) {
+    var notification_type = notification_types[data.type];
+    var el_notification = notification_type.compose(data);
+    append_notification(el_notification, data, notification_type.timeout);
+}

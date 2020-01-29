@@ -1,3 +1,9 @@
+// offstream
+obs-browser scene change event
+    -> dynamic NOTIFICATION_MAX_COUNT
+// next stream
+    counters && quotes (maybe)
+
 ============================================================
 Next Up
 ============================================================
@@ -21,12 +27,11 @@ Next Up
     !counter add name template   -> `Counter ${name} added`
     !counter edit name template  -> `Counter ${name} updated`
     !counter delete name         -> `Counter ${name} deleted`
-    !counter inc name            -> `${template.replace(/\$value/g, value.toString())}
-    !counter dec name            -> ...
-    !counter set name [+/-]amount // +=, -=, =
-    !counter name // displays template
-    db_command.permission // for read only access
-    db_command.edit_permission // for add/edit/delete (only editable manually, verified in-command)
+    !{counter}           -> no arguments, display template (separate permission)
+    !{counter} inc       -> ++
+    !{counter} dec       -> --
+    !{counter} set {int} -> set value
+    db.command !{counter} -> handled_by
 
 // later tasks
 [ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
@@ -44,9 +49,11 @@ Progress
 [x] Polls (start/vote/end)
 [x] Command (enable/disable/permissions/modes)
 [X] Macros
-[X] Websocket Base Code (todo, add pages/widgets/functions...)
+[X] Websocket Base Code
+[X] Websocket/OBS Chatlog
+[-] Websocket/OBS Nofitication system
+[X] Counters
 
-[ ] Counters
 [ ] Quotes
 
 [ ] uptime (using obs-websocket, probably)

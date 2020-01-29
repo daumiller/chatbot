@@ -9,6 +9,7 @@ const command_paths = [
     "./command/shoutout",
     "./command/permission",
     "./command/macro",
+    "./command/counter",
 ];
 
 for(let index=0; index<command_paths.length; ++index) {

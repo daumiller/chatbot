@@ -4,7 +4,8 @@ const twitch    = require('tmi.js');
 const mongo     = require('mongodb');
 const socketio  = require('socket.io');
 const graphemes = require('grapheme-splitter')();
-const constants = require('./constants.js');
+
+const common = require("./common");
 
 class ChatBot {
     disconnecting    = false;
@@ -39,7 +40,7 @@ class ChatBot {
     }
 
     _startup_mongo() {
-        this.mongo_client = new mongo.MongoClient(this.secrets.mongo.url);
+        this.mongo_client = new mongo.MongoClient(this.secrets.mongo.url, { useUnifiedTopology: true });
 
         this.mongo_client.connect((error) => {
             if(error) {
@@ -154,20 +155,6 @@ class ChatBot {
         const is_mod      = tags && (tags['mod'] === true);            // NOTE: is_mod only valid for is_chat messages
         const is_streamer = tags && (tags['username'] === this.secrets.twitch.streamer);
     
-        // mode check
-        if(is_chat    && !db_command.chat_enabled) { return; }
-        if(is_whisper && !db_command.whisper_enabled) { return; }
-
-        // permissions check
-        let permission = false;
-        if((db_command.permission & constants.PERMISSION_USER    )               ) { permission = true; }
-        if((db_command.permission & constants.PERMISSION_SUB     ) && is_sub     ) { permission = true; }
-        if((db_command.permission & constants.PERMISSION_MOD     ) && is_mod     ) { permission = true; }
-        if((db_command.permission & constants.PERMISSION_STREAMER) && is_streamer) { permission = true; }
-        if(!permission) { return; }
-
-        // TODO: cooldown check
-    
         const data = {
             channel    : channel,
             tags       : tags,
@@ -181,6 +168,8 @@ class ChatBot {
             is_mod     : is_mod,
             is_streamer: is_streamer
         };
+
+        if(!common.permission_allowed(data)) { return; }
     
         this.logger.debug("EXECUTING COMMAND", data);
         

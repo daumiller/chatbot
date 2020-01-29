@@ -1,14 +1,12 @@
-const constants = require('../constants.js');
+const constants = require('../constants');
+const common    = require('../common');
 
 // validate integer permission value
 function integerPermission(value) {
-    value = value.toString();
-    const parsed = parseInt(value);
-    
-    if(isNaN(parsed)) { return null; }
-    if(parsed.toString() !== value) { return null; } // reject partial parses ("1something", ...)
-    if((parsed < 0) || (parsed > constants.PERMISSION_MAX)) { return null; } // bounds check
+    value = common.safe_parse_int(value);
+    if(value === null) { return null; }
 
+    if((parsed < 0) || (parsed > constants.PERMISSION_MAX)) { return null; } // bounds check
     return parsed;
 }
 
