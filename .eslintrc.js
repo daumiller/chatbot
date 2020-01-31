@@ -2,6 +2,7 @@
 // no spacing before type specifier
 // always semicolon
 // all conditional blocks require curlies
+// ClassNames, functionNames, variable_names
 
 module.exports = {
     root: true,

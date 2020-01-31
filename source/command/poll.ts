@@ -32,7 +32,7 @@ class Poll {
     }
 
     announceResults():string {
-        if(!this._vote_totals) { this._calculateResults(); }
+        if(!this._vote_totals.length) { this._calculateResults(); }
 
         this._chatbot.say(`Poll: ${this.name}`);
         for(let index:number=0; index<this._vote_totals.length; ++index) {
@@ -41,7 +41,9 @@ class Poll {
             this._chatbot.say(`--- ${option_count} vote(s) for ${option_name}`);
         }
 
-        if(this._vote_totals[0].count === this._vote_totals[1].count) {
+        if(this._vote_totals.length === 0) {
+            return "No votes were cast."
+        } else if(this._vote_totals[0].count === this._vote_totals[1].count) {
             return "Poll ended in a tie!";
         } else {
             const option_name  = this.options[this._vote_totals[0].index];
@@ -53,7 +55,7 @@ class Poll {
     private _calculateResults():void {
         this._vote_totals = [];
         for(let index:number=0; index<this.options.length; ++index) {
-            this._vote_totals[index] = { index:index, count:0 };
+            this._vote_totals.push({ index:index, count:0 });
         }
 
         for(const username in this._votes) {
@@ -122,7 +124,7 @@ function commandEndPoll(chatbot:ChatBot, data:ChatCommandData):void {
 
 function register(commands:CommandRegistration):CommandRegistration {
     commands["!poll"   ] = commandPoll;
-    commands["!vode"   ] = commandVote;
+    commands["!vote"   ] = commandVote;
     commands["!endpoll"] = commandEndPoll;
 
     return commands;

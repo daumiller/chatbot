@@ -6,7 +6,7 @@ import logger from "../logger";
 
 function _updateCommandAndNotify(chatbot:ChatBot, data:ChatCommandData, subcommand:DBCommand, update_object:object):void {
     subcommand.update(update_object, (error, result) => {
-        if((error !== null) || (result.matchedCount !== 1)) {
+        if((error !== null) || (result.nModified !== 1)) {
             chatbot.say(`@${data.state.username} : unable to update command "${subcommand.name}".`);
             logger.debug("Failed updating DB command.", { error:error }); // subcommand was already found, so this update shouldn't fail
             return;
@@ -88,9 +88,9 @@ function commandCommand(chatbot:ChatBot, data:ChatCommandData):void {
         if(error !== null) { return; } // given ${command.name} was invalid/missing
         
         if(data.words[2].toLowerCase() === "permission") {
-            commandCommand_Enable(chatbot, data, subcommand);
-        } else {
             commandCommand_Permission(chatbot, data, subcommand);
+        } else {
+            commandCommand_Enable(chatbot, data, subcommand);
         }
     });
 }

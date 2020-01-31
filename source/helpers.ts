@@ -2,7 +2,7 @@ import constants from "./config/constants";
 import { ChatCommandData } from "./chatbot"
 
 /**
- * Safely parse an integer. Very parsed value matches full string. Return null on error.
+ * Safely parse an integer. Verify parsed value matches full string. Return null on error.
  * @param value 
  */
 export function safeParseInt(value:any):number {

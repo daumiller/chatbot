@@ -82,7 +82,7 @@ function commandCounter_Add(chatbot:ChatBot, data:ChatCommandData):void {
         permission      : constants.permissions["all"].value,
         permission_edit : constants.permissions["mod"].value | constants.permissions["streamer"].value,
         chat_enabled    : true,
-        whisper_enabled : null,
+        whisper_enabled : false,
         cooldown_seconds: null,
         cooldown_expires: null, // TODO: update with whatever we default these to,
         counter         : 0,
