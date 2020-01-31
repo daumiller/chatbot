@@ -34,7 +34,7 @@ function createJoinData(channel:string, username:string):ChatCommandData {
         is_mod:null,
         is_streamer:null,
         state: { username:username },
-        words:[],
+        words:[ "", username ],
         db_command:null
     };
 }
@@ -132,7 +132,8 @@ class ChatBot {
     //=============================================================================
     // Mongo
     private _mongoStartup():void {
-        mongoose.set("bufferCommands", false);
+        // NOTE: We actually need to buffer, because we setup models before DB connection...
+        // mongoose.set("bufferCommands", false);
         mongoose.connect(secrets.mongo.url, { useUnifiedTopology:true, useNewUrlParser:true }, (error) => {
             if(error) {
                 logger.error("Mongo connection failed", { error:error });
@@ -180,10 +181,12 @@ class ChatBot {
         const data = createJoinData(channel, username);
 
         if(commands["!join"]) {
+            data.words[0] = "!join";
             commands["!join"](this, data);
         }
-        if(commands["!shoutout"]) {
-            commands["!shoutout"](this, data);
+        if(commands["!greet"]) {
+            data.words[0] = "!greet";
+            commands["!greet"](this, data);
         }
     }
 
@@ -248,7 +251,7 @@ class ChatBot {
     }
 
     private _websocketEventHttp(request:http.IncomingMessage, response:http.ServerResponse):void {
-        const filename = `${__dirname}/../../websocket/${request.url}`;
+        const filename = `${__dirname}/../websocket/${request.url}`;
         fs.readFile(filename, (error, content) => {
             if(error) {
                 response.writeHead(500);
@@ -289,7 +292,7 @@ class ChatBot {
         const client_data = {
             username: data.state["display-name"] || data.state.username,
             color   : data.state.color           || "#0000FF",
-            message : data.state.message         || "",
+            message : data.message               || "",
             emotes  : sorted_emotes,
         };
         this.emitWebsocketEvent("chatlog", client_data);

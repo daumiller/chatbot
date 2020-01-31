@@ -6,7 +6,7 @@ obs-browser scene change event -> dynamic NOTIFICATION_MAX_COUNT
 ============================================================
 Next Up
 ============================================================
-// verification of TS-migrated commands
+[ ] !macro edit ${macroname} template // see: !counter edit ${countername} template
 
 // later tasks
 [ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
@@ -28,9 +28,10 @@ Progress
 [X] Websocket/OBS Chatlog
 [-] Websocket/OBS Nofitication system (TODO: scene-change via OBS js)
 [X] Counters
+[X] Greetings
 
 [ ] Quotes
-[ ] Join/Leave/Shoutout
+[ ] Join/Leave?
 
 [ ] uptime (using obs-websocket, probably)
 
