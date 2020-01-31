@@ -26,7 +26,20 @@
   "dependencies": {
     "grapheme-splitter": "^1.0.4",
     "mongodb": "^3.4.1",
+    "mongoose": "^5.8.10",
     "socket.io": "^2.3.0",
     "tmi.js": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/mongoose": "^5.7.0",
+    "@types/node": "^13.5.2",
+    "@types/socket.io": "^2.1.4",
+    "@types/tmi.js": "^1.4.0",
+    "@typescript-eslint/eslint-plugin": "^2.18.0",
+    "@typescript-eslint/parser": "^2.18.0",
+    "eslint": "^6.8.0",
+    "jest": "^25.1.0",
+    "ts-jest": "^25.0.0",
+    "typescript": "^3.7.5"
   }
 }

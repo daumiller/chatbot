@@ -1,37 +1,12 @@
-// offstream
-obs-browser scene change event
-    -> dynamic NOTIFICATION_MAX_COUNT
-// next stream
-    counters && quotes (maybe)
+============================================================
+Notes
+============================================================
+obs-browser scene change event -> dynamic NOTIFICATION_MAX_COUNT
 
 ============================================================
 Next Up
 ============================================================
-[x] strip quotes from arguments
-[x] Clean up polling, add class
-[x] Enable/disable command, change command permissions/modes
-    - !command !quote enable|disable [chat|whisper] # global if not chat/whisper specified
-    - !command !quote permission integerPermissionValue
-    - !command !quote permission grant|deny|set user|sub|mod|streamer
-    * would make !command whisper only, but can't read mod flag during whispers...
-    * any results/errors will @ user in main channel, since we can't return whispers (for streamer)
-[x] Macros
-    !macro add name string ->  `Macro ${name} added`
-    !macro delete name     ->  `Macro ${name} deleted`
-    !name                  ->  `${string}`
-    db_command.handled_by = "!macro"
-    db_command.permission = constants.PERMISSION_MAX // default to allow-all (edit with !command as needed)
-    if(db_command.handled_by && commands[db_command.handled_by]) { ... }
-[ ] Counters
-    // template "Stream has had $value errors..."
-    !counter add name template   -> `Counter ${name} added`
-    !counter edit name template  -> `Counter ${name} updated`
-    !counter delete name         -> `Counter ${name} deleted`
-    !{counter}           -> no arguments, display template (separate permission)
-    !{counter} inc       -> ++
-    !{counter} dec       -> --
-    !{counter} set {int} -> set value
-    db.command !{counter} -> handled_by
+// verification of TS-migrated commands
 
 // later tasks
 [ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
@@ -39,96 +14,29 @@ Next Up
 
 // always tasks
 Clean up DB
-Documentation -- commands & DB (collections, fields, permission-model, ...)
-Add usage to commands?
+Documentation
+Better echoed error/usage info.
 
 ============================================================
 Progress
 ============================================================
-[x] Shutdown
+[x] Shutdown/Ping
 [x] Polls (start/vote/end)
 [x] Command (enable/disable/permissions/modes)
 [X] Macros
 [X] Websocket Base Code
 [X] Websocket/OBS Chatlog
-[-] Websocket/OBS Nofitication system
+[-] Websocket/OBS Nofitication system (TODO: scene-change via OBS js)
 [X] Counters
 
 [ ] Quotes
+[ ] Join/Leave/Shoutout
 
 [ ] uptime (using obs-websocket, probably)
-[ ] Join/Leave/Shoutout
-[ ] Filters
 
+[ ] Filters
 [ ] Timers
 [ ] Sounds
 [ ] Music
-[ ] Follow/Subscribe/GiftBits/GiftSub
 
-============================================================
-DB Schema
-============================================================
-User
-    id
-    username
-    displayname
-    nickname
-    visits
-    last_join
-
-Command
-    id
-    name
-    permission (all/follower/subscriber/moderator/streamer)
-    chat_enabled
-    whisper_enabled
-    cooldown_seconds
-    cooldown_expires
-
-Poll
-    id
-    began_at
-    description
-PollVote
-    id
-    username
-    poll_id
-    choice
-
-Timer
-    id
-    began_at
-    complete_at
-    completed
-
-Macro
-    id
-    template
-    parameter_count
-
-Quote
-    id
-    number
-    text
-    recorded_at
-    cooldown_seconds
-    cooldown_expires
-
-Sound
-    id
-    filename
-    permission
-    cooldown_seconds
-    cooldown_expires
-
-Shoutout
-    id
-    username
-    template
-
-Filter
-    id
-    regex
-    does_ban
-    does_delete
-    delete_template
+[ ] Follow/Subscribe/GiftBits/GiftSub (twitch webhook)

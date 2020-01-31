@@ -1,243 +1,299 @@
-const fs        = require('fs');
-const http      = require('http');
-const twitch    = require('tmi.js');
-const mongo     = require('mongodb');
-const socketio  = require('socket.io');
-const graphemes = require('grapheme-splitter')();
+import fs   from "fs";
+import http from "http";
+import twitch   from "tmi.js";
+import socketio from "socket.io";
+import mongoose from "mongoose";
 
-const common = require("./common");
+import Command, { DBCommand } from "./data/command";
+import { permissionAllowed, graphemeSplit } from "./helpers";
+import logger from "./logger";
+import constants from "./config/constants";
+import commands from "./config/commands";
+import secrets from "./config/secrets";
+
+export interface ChatCommandData {
+    message:string;
+    channel:string;
+    is_chat:boolean;
+    is_whisper:boolean;
+    is_sub:boolean;
+    is_mod:boolean;
+    is_streamer:boolean;
+    state:twitch.ChatUserstate;
+    words:Array<string>;
+    db_command:DBCommand;
+}
+
+function createJoinData(channel:string, username:string):ChatCommandData {
+    return {
+        message:null,
+        channel:channel,
+        is_chat:false,
+        is_whisper:false,
+        is_sub:null,
+        is_mod:null,
+        is_streamer:null,
+        state: { username:username },
+        words:[],
+        db_command:null
+    };
+}
+
+function createCommandData(channel:string, state:twitch.ChatUserstate, message:string):ChatCommandData {
+    const is_chat     = state["message-type"] === "chat";
+    const is_whisper  = state["message-type"] === "whisper";
+    const is_sub      = state["subscriber"]   === true; // NOTE: not valid during is_whisper
+    const is_mod      = state["mod"]          === true; // NOTE: not valid during is_whisper
+    const is_streamer = state["username"]     === secrets.twitch.streamer;
+
+    // tokenize message
+    let words = message.match(/"[^"]+"|\S+/g);
+    // strip any enclosing quotes
+    words = words.map((word) => {
+        return word.replace(/^"([^"]*)"$/, "$1");
+    });
+    
+    return {
+        channel    : channel,
+        state      : state,
+        message    : message,
+        db_command : null,
+        words      : words,
+        is_chat    : is_chat,
+        is_whisper : is_whisper,
+        is_sub     : is_sub,
+        is_mod     : is_mod,
+        is_streamer: is_streamer
+    };
+}
 
 class ChatBot {
-    disconnecting    = false;
-    mongo_client     = null;
-    db_client        = null;
-    twitch_client    = null;
-    websocket_server = null;
+    disconnecting:boolean = false;
+    private _twitch_client:twitch.Client = null;
+    private _websocket_server:socketio.Server = null;
+    private _websocket_http_server:http.Server = null;
 
-    constructor(secrets, commands, logger) {
-        this.secrets  = secrets  || {};
-        this.commands = commands || {};
-        this.logger   = logger   || { debug:false, error:function(){}, debug:function(){} };
-
-        // validate needed secrets
-        this._validate(this.secrets,        "SECRETS",        ["twitch", "mongo"]);
-        this._validate(this.secrets.twitch, "SECRETS.twitch", ["username", "channel", "token", "streamer"]);
-        this._validate(this.secrets.mongo,  "SECRETS.mongo",  ["url", "dbname"]);
+    //=============================================================================
+    // Public
+    /**
+     * Emit a WebSocket event to any connected clients.
+     * @param name Name/type of the event.
+     * @param data Object holding any needed data.
+     */
+    emitWebsocketEvent(name:string, data:object):void {
+        if(this.disconnecting) { return; }
+        if(!this._websocket_server) { return; }
+        this._websocket_server.emit(name, data);
+    }
+    /**
+     * Send a chat message in the connected Twitch channel.
+     * @param message message
+     */
+    say(message:string):void {
+        if(this.disconnecting) { return; }
+        if(!this._twitch_client) { return; }
+        this._twitch_client.say(secrets.twitch.channel, message);
+    }
+    /**
+     * Send a whisper message to the specified user.
+     * 
+     * NOTE: Currently throws, because ChatBot is unable to whisper ATM.
+     * @param username user to whisper to
+     * @param message message
+     */
+    whipser(username:string, message:string):void {
+        // https://github.com/tmijs/tmi.js/issues/333
+        throw new Error("ChatBot currently unable to whisper (twitch limitation).");
+        this._twitch_client.whisper(username, message);
     }
 
-    get debug() { return this.logger.debug_enabled; }
-    set debug(value) { this.logger.debug_enabled = value; }
-
-    startup() {
-        this._startup_mongo();
+    //=============================================================================
+    // Startup
+    /**
+     * Start ChatBot and required services.
+     */
+    startup():void {
+        this._mongoStartup();
     }
-    shutdown(exit, exit_code) {
+    /**
+     * Shutdown ChatBot and services.
+     * @param exit_process end node process after shutdown completes
+     * @param exit_code if exiting process, return code to use
+     */
+    shutdown(exit_process:boolean, exit_code?:number):void {
+        if(this.disconnecting) { return; }
         this.disconnecting = true;
-        this._shutdown_websocket();
-        this._shutdown_twitch();
-        this._shutdown_mongo();
-        if(exit) { process.exit(exit_code || 0); }
+        this._websocketShutdown();
+        this._twitchShutdown();
+        this._mongoShutdown();
+        if(exit_process) { process.exit(exit_code || 0); }
     }
 
-    _startup_mongo() {
-        this.mongo_client = new mongo.MongoClient(this.secrets.mongo.url, { useUnifiedTopology: true });
-
-        this.mongo_client.connect((error) => {
+    //=============================================================================
+    // Mongo
+    private _mongoStartup():void {
+        mongoose.set("bufferCommands", false);
+        mongoose.connect(secrets.mongo.url, { useUnifiedTopology:true, useNewUrlParser:true }, (error) => {
             if(error) {
-                this.logger.error("Mongo connection failed", { error:error });
-                throw "Mongo connection failed";
+                logger.error("Mongo connection failed", { error:error });
+                throw new Error("Mongo connection failed");
             }
-            this.db_client = this.mongo_client.db(this.secrets.mongo.dbname);
-
-            this._startup_twitch();
-            this._startup_websocket();
+            this._twitchStartup();
+            this._websocketStartup();
         });
     }
-    _shutdown_mongo() {
-        this.mongo_client.close();
-        this.mongo_client = this.db_client = null;
+
+    private _mongoShutdown():void {
+        mongoose.disconnect();
     }
 
-    _startup_twitch() {
-        this.twitch_client = new twitch.Client({
-            options: { debug:this.debug },
+    //=============================================================================
+    // Twitch
+    private _twitchStartup():void {
+        this._twitch_client = twitch.Client({
+            options: { debug:constants.log_debug },
             connection: { reconnect:true, secure:true },
-            identity: { username:this.secrets.twitch.username, password:this.secrets.twitch.token },
-            channels: [ this.secrets.twitch.channel ],
+            identity: { username:secrets.twitch.username, password:secrets.twitch.token },
+            channels: [ secrets.twitch.channel ],
         });
 
-        this.twitch_client.connect().
+        this._twitch_client.connect().
             then(() => {
-                this.twitch_client.on('join', this._twitch_event_join.bind(this));
-                this.twitch_client.on('message', this._twitch_event_message.bind(this));
+                this._twitch_client.on("join", this._twitchEventJoin.bind(this));
+                this._twitch_client.on("message", this._twitchEventMessage.bind(this));
             }).catch((error) => {
-                this._shutdown_mongo();
-                this.logger.error("Twitch connection failed", { error:error });
-                throw "Twitch connection failed";
+                logger.error("Twitch connection failed", { error:error });
+                throw new Error("Twitch connection failed");
             });
     }
-    _shutdown_twitch() {
-        this.twitch_client.disconnect().then(() => {
-            this.twitch_client = null;
+
+    private _twitchShutdown():void {
+        this._twitch_client.disconnect().then(() => {
+            this._twitch_client = null;
         });
     }
 
-    _startup_websocket() {
-        this._websocket_http_server = http.createServer(this._websocket_event_http.bind(this));
-        this.websocket_server = socketio(this._websocket_http_server);
-        this._websocket_http_server.on('error', (error) => {
-            this.logger.error('Websocket Server Error', { error:error });
-            throw "Websocket server error";
-        });
-        this._websocket_http_server.listen(this.secrets.websocket.port || 8080);
-        if(this.debug) {
-            this.websocket_server.on('connection', (client) => {
-                this.logger.debug("Websocket connection established.", {});
-            });
-        }
-    }
-    _shutdown_websocket() {
-        this.websocket_server.close();
-        this._websocket_http_server.close();
-    }
+    private _twitchEventJoin(channel:string, username:string, self:boolean):void {
+        if(!(this._twitch_client.readyState() === "OPEN") || this.disconnecting || self) { return; }
+        logger.debug("TWITCH EVENT JOIN", { channel:channel, username:username });
 
-    _twitch_event_join(channel, username, self) {
-        if((!this.twitch_client.readyState === "OPEN") || this.disconnecting || self) { return; }
-        this.logger.debug("EVENT JOIN", { channel:channel, username:username });
+        const data = createJoinData(channel, username);
 
-        if(this.commands["!join"]) {
-            this.commands["!join"](this, channel, username);
+        if(commands["!join"]) {
+            commands["!join"](this, data);
         }
-        if(this.commands["!shoutout"]) {
-            this.commands["!shoutout"](this, channel, username);
+        if(commands["!shoutout"]) {
+            commands["!shoutout"](this, data);
         }
     }
 
-    _twitch_event_message(channel, tags, message, self) {
-        if((!this.twitch_client.readyState === "OPEN") || this.disconnecting) { return; }
+    private _twitchEventMessage(channel:string, state:twitch.ChatUserstate, message:string, self:boolean):void {
+        if(!(this._twitch_client.readyState() === "OPEN") || this.disconnecting) { return; }
+        const data = createCommandData(channel, state, message);
 
-        if(this.commands["!filter"] && !self) {
-            if(this.commands["!filter"](this, channel, tags, message)) {
-                // message was filtered
+        if(commands["!filter"] && !self) {
+            if(commands["!filter"](this, data)) {
+                // message was filtered out
                 return;
             }
         }
 
-        if(tags['message-type'] && (tags['message-type'] === 'chat')) {
-            this._websocket_event_chatlog(tags, message);
+        if(state["message-type"] && (state["message-type"] === "chat")) {
+            this._websocketEventChatlog(data);
         }
 
         if(self) { return; }
-        if(!message.length || (message[0] !== '!')) { return; }
+        if(!message.length || (message[0] !== "!")) { return; }
+        logger.debug("EVENT MESSAGE", data);
 
-        this.logger.debug("EVENT MESSAGE", { channel:channel, tags:tags, message:message });
-    
-        let words = message.match(/"[^"]+"|\S+/g);
-        if(!words.length) { return; }
-
-        // strip enclosing quotes
-        words = words.map((word) => {
-            return word.replace(/^"([^"]*)"$/, "$1");
-        });
-    
-        const db_commands = this.db_client.collection('commands');
-        db_commands.findOne({ name:words[0] }, (error, result) => {
+        Command.findOne({ name:data.words[0] }, (error, result) => {
             if(!error && result) {
-                this._twitch_event_message_continue(channel, tags, message, words, result);
+                this._twitchEventMessageContinue(data, result);
             }
         });
     }
-    
-    _twitch_event_message_continue(channel, tags, message, words, db_command) {
-        const is_chat     = tags && (tags['message-type'] === 'chat');
-        const is_whisper  = tags && (tags['message-type'] === 'whisper');
-        const is_sub      = tags && (tags['subscriber']   === 'true'); // NOTE: is_sub only valid for is_chat messages
-        const is_mod      = tags && (tags['mod'] === true);            // NOTE: is_mod only valid for is_chat messages
-        const is_streamer = tags && (tags['username'] === this.secrets.twitch.streamer);
-    
-        const data = {
-            channel    : channel,
-            tags       : tags,
-            message    : message,
-            db_command : db_command, // TODO: maybe (db_command.handled_by ? db_command : null) ?
-    
-            words      : words,
-            is_chat    : is_chat,
-            is_whisper : is_whisper,
-            is_sub     : is_sub,
-            is_mod     : is_mod,
-            is_streamer: is_streamer
-        };
 
-        if(!common.permission_allowed(data)) { return; }
-    
-        this.logger.debug("EXECUTING COMMAND", data);
-        
-        let command_name = db_command.handled_by || db_command.name;
-        if(this.commands[command_name]) {
-            this.commands[command_name](this, data);
-        }
-        // TODO: maybe?
-        // else { chatbot.twitch_client.say(unknown command ...) }
+    private _twitchEventMessageContinue(data:ChatCommandData, db_command:DBCommand):void {
+        data.db_command = db_command;
+        if(!permissionAllowed(data)) { return; }
+
+        logger.debug("EXECUTING COMMAND", data);
+
+        const command_name = db_command.handled_by || db_command.name;
+        if(commands[command_name]) {
+            commands[command_name](this, data);
+        } // else { "Unknown Command" } // TODO: maybe
     }
 
-    _websocket_event_http(request, response) {
-        const filename = `${__dirname}/websocket/${request.url}`;
+    //=============================================================================
+    // Websocket
+    private _websocketStartup():void {
+        this._websocket_http_server = http.createServer(this._websocketEventHttp.bind(this));
+        this._websocket_server = socketio(this._websocket_http_server);
+        this._websocket_http_server.on("error", (error) => {
+            logger.error("Websocket HTTP server startup failed", { error:error });
+            throw new Error("Websocket HTTP server startup failed");
+        });
+        this._websocket_http_server.listen(secrets.websocket.port, secrets.websocket.binding);
+        if(constants.log_debug) {
+            this._websocket_server.on("connection", (client) => {
+                logger.debug("Websocket connection established", {});
+            });
+        }
+    }
+
+    private _websocketShutdown():void {
+        this._websocket_server.close();
+        this._websocket_http_server.close();
+    }
+
+    private _websocketEventHttp(request:http.IncomingMessage, response:http.ServerResponse):void {
+        const filename = `${__dirname}/../../websocket/${request.url}`;
         fs.readFile(filename, (error, content) => {
             if(error) {
                 response.writeHead(500);
-                return response.end('Error loading page');
+                return response.end("Error loading page.");
             }
             response.writeHead(200);
             return response.end(content);
         });
     }
 
-    websocket_emit_event(name, data) {
-        this.websocket_server.emit(name, data);
-    }
-
-    _websocket_event_chatlog(tags, message) {
-        let emotes = tags.emotes;
+    private _websocketEventChatlog(data:ChatCommandData):void {
+        // twitch provides message string, and object set of emotes.
+        // each emote value is an array of arrays,
+        // each specifying a beginning and ending offset (grapheme or U32?) within the message.
+        // convert this to a single array of emotes with beginning/ending offsets we can work with
+        const emotes = data.state.emotes;
+        let sorted_emotes:Array<{ id:string; begin:number; end:number }> = [];
         if(emotes) {
-            let characters = graphemes.splitGraphemes(message);
-            let sorted_emotes = [];
-            for(var emote_id in emotes) {
+            const characters = graphemeSplit(data.message);
+            for(const emote_id in emotes) {
                 if(!emotes.hasOwnProperty(emote_id)) { continue; }
                 for(let occurence=0; occurence<emotes[emote_id].length; ++occurence) {
-                    let positions = emotes[emote_id][occurence].split('-');
-                    if(positions.length === 2) {
-                        let index_begin = parseInt(positions[0]);
-                        let index_end   = parseInt(positions[1]);
-                        // twitch appears to index actual graphemes, instead of JS string length
-                        // maybe U32 vs U16? revisit if needed...
-                        let offset     = characters.slice(0, index_begin).join('').length - index_begin;
-                        index_begin    += offset;
-                        index_end      += offset;
-                        sorted_emotes.push({ id:emote_id, begin:index_begin, end:index_end });
-                    }
+                    const positions = emotes[emote_id][occurence].split("-");
+                    if(positions.length !== 2) { continue; }
+
+                    let index_begin = parseInt(positions[0]);
+                    let index_end   = parseInt(positions[1]);
+                    const offset      = characters.slice(0, index_begin).join("").length - index_begin;
+
+                    index_begin += offset;
+                    index_end   += offset;
+                    sorted_emotes.push({ id:emote_id, begin:index_begin, end:index_end });
                 }
             }
-            emotes = sorted_emotes.sort(function(a,b) { return a.begin - b.begin; });
+            sorted_emotes = sorted_emotes.sort(function(a,b) { return a.begin - b.begin; });
         }
-        const data = {
-            username: tags["display-name"] || tags.username,
-            color   : tags.color           || "#0000FF",
-            emotes  : emotes               || [],
-            message : message              || "",
-        };
-        this.websocket_server.emit('chatlog', data);
-    }
 
-    _validate(object, object_name, keys) {
-        for(let index=0; index<keys.length; ++index) {
-            if(!object[keys[index]]) {
-                const description = `Missing ${object_name}.${keys[index]}`;
-                this.logger.error(description, {});
-                throw description;
-            }
-        }
+        const client_data = {
+            username: data.state["display-name"] || data.state.username,
+            color   : data.state.color           || "#0000FF",
+            message : data.state.message         || "",
+            emotes  : sorted_emotes,
+        };
+        this.emitWebsocketEvent("chatlog", client_data);
     }
 }
 
-module.exports = ChatBot;
+export default ChatBot;

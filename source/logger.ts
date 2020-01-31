@@ -1,22 +1,30 @@
+import constants from "./config/constants";
+
 class Logger {
-    constructor(debug) {
-        this.debug_enabled = debug;
-        this.error_enabled = true;
+    private _debug_enabled:boolean;
+    private _error_enabled:boolean;
+
+    constructor() {
+        this._debug_enabled = constants.log_debug;
+        this._error_enabled = constants.log_error;
     }
 
-    error(message, data) {
-        if(!this.error_enabled) { return; }
-        console.log('========================================');
-        console.log(`ERROR: ${message}`);
+    /** Write debugging message to console, if debug_enabled is set. */
+    debug(message:string, data:object):void {
+        if(!this._debug_enabled) { return; }
+        console.debug("========================================");
+        console.debug(`DEGUB ${message}`);
         console.log(data);
     }
 
-    debug(message, data) {
-        if(!this.debug_enabled) { return; }
-        console.log('========================================');
-        console.log(`DEBUG: ${message}`);
+    /** Write error message to console.stderr, if error_enabled is set. */
+    error(message:string, data:object):void {
+        if(!this._error_enabled) { return; }
+        console.debug("========================================");
+        console.log(`ERROR: ${message}`);
         console.log(data);
     }
 }
 
-module.exports = Logger;
+const logger = new Logger();
+export default logger;
