@@ -2,12 +2,9 @@ interface MongoSecrets {
     /**
      * MongoDB server connection string.
      *
-     * ex: mongodb://user:pass@10.0.0.1:27017
+     * ex: mongodb://user:pass@10.0.0.1:27017/dbname?authSource=admin
      */
     url:string;
-
-    /** MongoDB server database name. */
-    dbname:string;
 }
 
 interface TwitchSecrets {
@@ -49,7 +46,6 @@ interface Secrets {
 const secrets:Secrets = {
     mongo: {
         url   : "mongodb://",
-        dbname: "chatbot",
     },
     twitch: {
         username: "",
