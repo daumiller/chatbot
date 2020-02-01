@@ -23,7 +23,7 @@ Progress
 [X] Websocket Client Nofitication system
 [X] Counters
 [X] Greetings
-[X] Sounds - requires a Marak/play.js compatible player available in path (afplay, mplayer, mpg123, mpg321, play)
+[X] Sounds
 
 [ ] Quotes
 [ ] Join/Leave?
