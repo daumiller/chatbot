@@ -37,10 +37,18 @@ interface WebsocketSecrets {
     port:number;
 }
 
+interface SoundPlayer {
+    /**
+     * Console command to use for playing sounds.
+     */
+    command:string;
+}
+
 interface Secrets {
     mongo:MongoSecrets;
     twitch:TwitchSecrets;
     websocket:WebsocketSecrets;
+    soundplayer:SoundPlayer;
 }
 
 const secrets:Secrets = {
@@ -55,6 +63,9 @@ const secrets:Secrets = {
     },
     websocket: {
         port: 4331,
+    },
+    soundplayer: {
+        command: "afplay"
     }
 }
 export default secrets;

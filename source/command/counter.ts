@@ -84,7 +84,6 @@ function commandCounter_Add(chatbot:ChatBot, data:ChatCommandData):void {
         chat_enabled    : true,
         whisper_enabled : false,
         cooldown_seconds: null,
-        cooldown_expires: null, // TODO: update with whatever we default these to,
         counter         : 0,
     });
 

@@ -25,7 +25,6 @@ function commandMacro_Add(chatbot:ChatBot, data:ChatCommandData, macro_name:stri
         chat_enabled    : true,
         whisper_enabled : false,
         cooldown_seconds: null,
-        cooldown_expires: null, // TODO: update with whatever we default these to
     });
 
     db_macro.save((error, db_command) => {
@@ -35,6 +34,20 @@ function commandMacro_Add(chatbot:ChatBot, data:ChatCommandData, macro_name:stri
             return;
         }
         chatbot.say(`@${data.state.username} : created macro "${macro_name}".`);
+    });
+}
+
+// !macro edit ${command.name} templateString
+//     edit existing macro
+function commandMacro_Edit(chatbot:ChatBot, data:ChatCommandData, macro_name:string, macro_template:string):void {
+    if(!macro_template) { chatbot.say(`@${data.state.username} : no macro template provided.`); return; }
+
+    Command.updateOne({ name:macro_name }, { template:macro_template }, (error, result) => {
+        if((error !== null) || (result.nModified !== 1)) {
+            chatbot.say(`@${data.state.username} : unable to update macro "${macro_name}".`);
+            return;
+        }
+        chatbot.say(`@${data.state.username} : updated macro "${macro_name}".`);
     });
 }
 
@@ -58,16 +71,22 @@ function commandMacro(chatbot:ChatBot, data:ChatCommandData):void {
         return;
     }
 
-    const mode = data.words[1].toLowerCase();
-    switch(mode) {
+    const command        = data.words[1].toLowerCase();
+    const macro_name     = data.words[2].toLowerCase();
+    const macro_template = (data.words.length > 3) ? data.words[3] : null;
+
+    switch(command) {
         case "add":
-            commandMacro_Add(chatbot, data, data.words[2], data.words[3]);
+            commandMacro_Add(chatbot, data, macro_name, macro_template);
+            break;
+        case "edit":
+            commandMacro_Edit(chatbot, data, macro_name, macro_template);
             break;
         case "delete":
-            commandMacro_Delete(chatbot, data, data.words[2]);
+            commandMacro_Delete(chatbot, data, macro_name);
             break;
         default:
-            chatbot.say(`@${data.state.username} : bad macro mode "${data.words[1]}".`);
+            chatbot.say(`@${data.state.username} : bad macro command "${command}".`);
     }    
 }
 

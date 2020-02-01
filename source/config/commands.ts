@@ -13,6 +13,7 @@ const command_path:Array<string> = [
     "../command/permission",
     "../command/poll",
     "../command/process",
+    "../command/sound",
 ];
 
 async function registerCommands():Promise<void> {

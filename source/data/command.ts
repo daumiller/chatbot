@@ -7,10 +7,10 @@ export interface DBCommand extends Document {
     chat_enabled:boolean;
     whisper_enabled:boolean;
     cooldown_seconds?:number;
-    cooldown_expires?:number;
     handled_by?:string;
     template?:string;
     counter?:number;
+    filename?:string;
 }
 
 const CommandSchema:Schema = new Schema({
@@ -20,10 +20,10 @@ const CommandSchema:Schema = new Schema({
     chat_enabled:     { type:Boolean, required:true },
     whisper_enabled:  { type:Boolean, required:true },
     cooldown_seconds: { type:Number },
-    cooldown_expires: { type:Number },
     handled_by:       { type:String },
     template:         { type:String },
     counter:          { type:Number },
+    filename:         { type:String },
 });
 
 export default mongoose.model<DBCommand>("Command", CommandSchema, "commands");

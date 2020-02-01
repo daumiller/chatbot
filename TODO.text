@@ -1,12 +1,6 @@
 ============================================================
-Notes
-============================================================
-obs-browser scene change event -> dynamic NOTIFICATION_MAX_COUNT
-
-============================================================
 Next Up
 ============================================================
-[ ] !macro edit ${macroname} template // see: !counter edit ${countername} template
 
 // later tasks
 [ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
@@ -24,11 +18,12 @@ Progress
 [x] Polls (start/vote/end)
 [x] Command (enable/disable/permissions/modes)
 [X] Macros
-[X] Websocket Base Code
-[X] Websocket/OBS Chatlog
-[-] Websocket/OBS Nofitication system (TODO: scene-change via OBS js)
+[X] Websocket Server Code
+[X] Websocket Client Chatlog
+[X] Websocket Client Nofitication system
 [X] Counters
 [X] Greetings
+[X] Sounds - requires a Marak/play.js compatible player available in path (afplay, mplayer, mpg123, mpg321, play)
 
 [ ] Quotes
 [ ] Join/Leave?
@@ -37,7 +32,11 @@ Progress
 
 [ ] Filters
 [ ] Timers
-[ ] Sounds
 [ ] Music
 
 [ ] Follow/Subscribe/GiftBits/GiftSub (twitch webhook)
+[ ] Websocket Client rework (unify? scene-changes? ...)
+
+============================================================
+Notes
+============================================================

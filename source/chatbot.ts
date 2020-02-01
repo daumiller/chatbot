@@ -72,6 +72,7 @@ class ChatBot {
     private _twitch_client:twitch.Client = null;
     private _websocket_server:socketio.Server = null;
     private _websocket_http_server:http.Server = null;
+    private _cooldown_timers:{[command_name:string]:number} = {};
 
     //=============================================================================
     // Public
@@ -220,12 +221,21 @@ class ChatBot {
         data.db_command = db_command;
         if(!permissionAllowed(data)) { return; }
 
+        const now:Date = new Date();
+        if(db_command.cooldown_seconds) {
+            if(this._cooldown_timers[db_command.name]) {
+                if(now.getTime() < this._cooldown_timers[db_command.name]) { return; } // cooldown not expired
+            }
+            now.setSeconds(now.getSeconds() + db_command.cooldown_seconds);
+            this._cooldown_timers[db_command.name] = now.getTime();
+        }
+
         logger.debug("EXECUTING COMMAND", data);
 
         const command_name = db_command.handled_by || db_command.name;
         if(commands[command_name]) {
             commands[command_name](this, data);
-        } // else { "Unknown Command" } // TODO: maybe
+        }
     }
 
     //=============================================================================

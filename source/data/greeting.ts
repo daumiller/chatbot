@@ -10,4 +10,4 @@ const GreetingSchema:Schema = new Schema({
     template: { type:String, required:true },
 });
 
-export default mongoose.model<DBGreeting>("Greeting", GreetingSchema, "greetings");;
+export default mongoose.model<DBGreeting>("Greeting", GreetingSchema, "greetings");
