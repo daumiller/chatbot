@@ -15,6 +15,23 @@ export function safeParseInt(value:any):number {
 }
 
 /**
+ * Return "YYYY-mm-dd" string from date, given in ms.
+ */
+export function YYYY_MM_DD(unix_time:number):string {
+    const date = new Date(unix_time);
+
+    const year_string = date.getFullYear().toString();
+
+    const month_number = date.getMonth() + 1;
+    const month_string = ((month_number < 10) ? "0" : "") + month_number.toString();
+
+    const date_number = date.getDate();
+    const date_string = ((date_number < 10) ? "0" : "") + date_number.toString();
+
+    return `${year_string}-${month_string}-${date_string}`;
+}
+
+/**
  * Test if message sender has permission to use command.
  * @param data data packet
  */
@@ -32,8 +49,6 @@ export function permissionAllowed(data:ChatCommandData):boolean {
     if((db_command.permission & constants.permissions.mod.value     ) && data.is_mod     ) { permission = true; }
     if((db_command.permission & constants.permissions.streamer.value) && data.is_streamer) { permission = true; }
     if(!permission) { return false; }
-
-    // TODO: cooldown check
 
     return true;
 }

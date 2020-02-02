@@ -1,6 +1,7 @@
 ============================================================
 Next Up
 ============================================================
+[ ] OBS Web Client Updates (unify page?)
 
 // later tasks
 [ ] option to store user details so mods can whisper mod-enabled commands... (simple list of mod_users, or separate user flags?)
@@ -24,16 +25,14 @@ Progress
 [X] Counters
 [X] Greetings
 [X] Sounds
+[X] Quotes
 
-[ ] Quotes
-[ ] Join/Leave?
-
-[ ] uptime (using obs-websocket, probably)
-
+[ ] Join/Leave
 [ ] Filters
 [ ] Timers
-[ ] Music
 
+[ ] uptime (using obs-websocket, probably)
+[ ] Music
 [ ] Follow/Subscribe/GiftBits/GiftSub (twitch webhook)
 [ ] Websocket Client rework (unify? scene-changes? ...)
 
